@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,7 +18,7 @@ namespace trading_engine
     }
     public class AssetService
     {
-        private readonly Dictionary<long, Dictionary<AssetEnum, Asset>> userAssets = [];
+        private readonly ConcurrentDictionary<long, ConcurrentDictionary<AssetEnum, Asset>> userAssets = [];
 
         private readonly ILogger<AssetService> log;
 
@@ -38,7 +39,7 @@ namespace trading_engine
             }
         }
 
-        public Dictionary<AssetEnum, Asset> GetAssets(long userId)
+        public ConcurrentDictionary<AssetEnum, Asset> GetAssets(long userId)
         {
             if (userAssets.TryGetValue(userId, out var assets))
             {
@@ -50,7 +51,7 @@ namespace trading_engine
             }
         }
 
-        public Dictionary<long, Dictionary<AssetEnum, Asset>> GetAllAssets()
+        public ConcurrentDictionary<long, ConcurrentDictionary<AssetEnum, Asset>> GetAllAssets()
         {
             return userAssets;
         }
@@ -95,16 +96,8 @@ namespace trading_engine
             {
                 throw new ArgumentException("Amount must be non-negative", nameof(amount));
             }
-            Asset? fromAsset = GetAsset(fromUser, assetId);
-            if (fromAsset == null)
-            {
-                fromAsset = initAsset(fromUser, assetId);
-            }
-            Asset? toAsset = GetAsset(toUser, assetId);
-            if (toAsset == null)
-            {
-                toAsset = initAsset(toUser, assetId);
-            }
+            Asset fromAsset = GetAsset(fromUser, assetId) ?? initAsset(fromUser, assetId);
+            Asset toAsset = GetAsset(toUser, assetId) ?? initAsset(toUser, assetId);
             switch (transferType)
             {
                 case TransferType.AVAILABLE_TOAVAILABLE:
